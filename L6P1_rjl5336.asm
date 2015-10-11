@@ -8,17 +8,15 @@ remainder:		.word 4					#creates a space in memory to store remainder
 result:			.word 4					#creates a space in memory to store result		
 clear:			.word 99				#creates a space in memory to make a clear
 buffer:			.byte 0:80				#creates a buffer that is 10 digits
-
 Input1: 		.asciiz "\nPlease enter first number:"	#prompts the user to input something
 Input2: 		.asciiz "\nPlease enter second number:" #prompts the user to input something
-Input_operator: 	.asciiz "\Please enter operator(+-*/$):"	#prompts the user to input something
+Input_operator: 	.asciiz "Please enter operator(+-*/%$):"	#prompts the user to input something
 Your_answer:		.asciiz "Your answer is: "		#outputs equation to user		
 Output_result: 		.asciiz " = "				#outputs the result to the user
-Output_remainder: 	.asciiz "\nYour remainder is:"		#outputs the remainder to the user		
+Output_remainder: 	.asciiz "\nYour remainder is: "		#outputs the remainder to the user		
 Operator_Error: 	.asciiz "\nNot valid operator\n"	#output that shows if there is not a valid operator shown
 Div_Error: 		.asciiz "\nInvalid divisor\n"		#output that shows if there is a divide by 0 error
 INVALID_NUM: 		.asciiz "\nNot a valid numerical input\n"
-Decimal: 		.asciiz "."
 ###########################################################################################################################
 .text
 Main:
@@ -37,6 +35,10 @@ Main:
 
 	jal chk_op_plus				#jumps to check if operator is valid
 	
+	
+	la $ra, resume
+	la $a0, num1
+	beq $v1, '$', SquareRoot		#if user inputed operator is $ go to SquareRoot
 
 	la  $a0, Input2				#loads address of second input number string
 	la  $a1, num2				#stores the second input into memory
@@ -54,24 +56,33 @@ Main:
 	beq $v1, '-', SubNumb			#if user inputed operator is - go to SubNumb
 	beq $v1, '*', MultNumb			#if user inputed operator is * go to MultNumb
 	beq $v1, '/', DivNumb			#if user inputed operator is / go to DivNumb
-	beq $v1, '$', SquareRoot		#if user inputed operator is $ go to SquareRoot
+	beq $v1, '%', DivNumb			#if user inputed operator is % go to DivNumb
 
 resume:						#where we return after our arithmetic operation	
-	la  $a0, Your_answer
-	li $v0, 4				#prints out		
-	syscall
-
-
 	la $a0, result				#load result
 	la $a1, clear				#clears a1
 		
 	jal BinToDecAsc
 
-	la $t0, result				#loads result
-	lw $a0, 0($t0)				#puts result into a0 to print out
-	li $v0, 1
-	syscall
+	beq $v1, '%', MODULO_OUT			#if user inputed operator is % go to DivNumb
+
+	la  $a0, Your_answer
+	la $a1, result
+	jal DisplayNumb				#displays the equation that was entered on one line
+
 	
+	la $a0, Output_remainder		
+	la $a1, remainder			#load remainder
+
+	la  $ra,done				#set point to return to
+	lw  $t7, 0($a1)				#load address of remainder
+	bne $t7, $0, DisplayNumb		#if remainder is not zero, branch
+done:
+
+MODULO_OUT:
+	la  $a0, Your_answer
+	la $a1, remainder
+	jal DisplayNumb				#displays the equation that was entered on one line	
 EXIT:						#point to return to
 	li $v0, 10
 	syscall
@@ -90,22 +101,20 @@ GetInput:
 
 	
 	add  $a0, $t0, 0			#a0 = buffer
-	addi $a1, $0, 80			#max number of characters we can use is 13
+	addi $a1, $0, 80			#max number of characters we can use
 	
 	li $v0, 8				#retrieves value of Input string
 	syscall 
-
-
 	
-	lw $a1,0($sp)				# restore al original address value of var0 or var1
+	lw   $a1, 0($sp)			# restore al to num1 or num2
 	addi $sp, $sp, 4    
-	addi $sp,$sp,-4			
-	sw $ra,0($sp)				# store our ra so we can jump back to main 
+	addi $sp, $sp,-4			
+	sw   $ra, 0($sp)			# store our ra so we can jump back to main 
 	
 	jal DecAscToBin				
 	
-	lw $ra,0($sp)
-	addi $sp,$sp,4 
+	lw   $ra, 0($sp)
+	addi $sp, $sp, 4 
 
 	jr $ra 
 
@@ -121,11 +130,18 @@ GetOperator:
 	
 	add $v1, $v0, $0			#store operator into v1
 	
-	# hard return
-	addi $a0, $0, 0xA 		 #ascii code for LF
-	addi $v0, $0, 0xB		 #syscall 11 prints the lower 8 bits of $a0 as an ascii character.
+jr $ra
+
+#Procedure: DisplayNumb Displays a message to the user followed by a numerical value 
+#Input: $a0 points to the text string that will get displayed to the user
+#Input: $a1 points to a word address in .data memory, where the input value is stored
+DisplayNumb:
+	li $v0, 4				#service 4 is print string
 	syscall
 	
+	li   $v0, 1				#print integer syscall
+	lw   $a0, 0($a1)			#move our result that is stored in $a1 to $a0
+	syscall	
 jr $ra
 #procedure to see if operator is '+'	
 chk_op_plus:					
@@ -139,12 +155,16 @@ chk_op_minus:
 
 #procedure to see if operator is '*'
 chk_op_mlt:					
-	bne $v1, '*', chk_op_sqrt		#if not '*' branch to see if '/'
+	bne $v1, '*', chk_op_sqrt		#if not '*' branch to see if '$'
 	jr $ra
 #procedure to see if operator is '$'
 chk_op_sqrt:					
-	bne $v1, '$', chk_op_div		#if not '$' branch to see if '/'
+	bne $v1, '$', chk_modulo		#if not '$' branch to see if '%'
 	jr $ra
+#procedure to see if operator is '%'
+chk_modulo:					
+	bne $v1, '%', chk_op_div		#if not '$' branch to see if '/'
+	jr $ra	
 #procedure to see if operator is '/'
 chk_op_div:					
 	bne $v1, '/', op_error			#if not '/' branch to error loop
