@@ -11,7 +11,7 @@ buffer:			.byte 0:80				#creates a buffer that is 10 digits
 Input1: 		.asciiz "\nPlease enter first number:"	#prompts the user to input something
 Input2: 		.asciiz "\nPlease enter second number:" #prompts the user to input something
 Input_operator: 	.asciiz "Please enter operator(+-*/%$):"	#prompts the user to input something
-Your_answer:		.asciiz "Your answer is: "		#outputs equation to user		
+Your_answer:		.asciiz "\nYour answer is: "		#outputs equation to user		
 Output_result: 		.asciiz " = "				#outputs the result to the user
 Output_remainder: 	.asciiz "\nYour remainder is: "		#outputs the remainder to the user		
 Operator_Error: 	.asciiz "\nNot valid operator\n"	#output that shows if there is not a valid operator shown
@@ -36,7 +36,7 @@ Main:
 	jal chk_op_plus				#jumps to check if operator is valid
 	
 	
-	la $ra, resume
+	la $ra, SQRT_OUT
 	la $a0, num1
 	beq $v1, '$', SquareRoot		#if user inputed operator is $ go to SquareRoot
 
@@ -64,10 +64,10 @@ resume:						#where we return after our arithmetic operation
 		
 	jal BinToDecAsc
 
-	beq $v1, '%', MODULO_OUT			#if user inputed operator is % go to DivNumb
+	beq $v1, '%', MODULO_OUT		#if user inputed operator is % go to DivNumb
 
 	la  $a0, Your_answer
-	la $a1, result
+	la  $a1, result
 	jal DisplayNumb				#displays the equation that was entered on one line
 
 	
@@ -78,12 +78,16 @@ resume:						#where we return after our arithmetic operation
 	lw  $t7, 0($a1)				#load address of remainder
 	bne $t7, $0, DisplayNumb		#if remainder is not zero, branch
 done:
-
+SQRT_OUT:
+	la $a0, Your_answer
+	la $a1, num1
+	jal DisplayNumb
+	j EXIT
 MODULO_OUT:
 	la  $a0, Your_answer
 	la $a1, remainder
 	jal DisplayNumb				#displays the equation that was entered on one line	
-EXIT:						#point to return to
+EXIT:						#exit loop
 	li $v0, 10
 	syscall
 	
