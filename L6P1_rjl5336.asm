@@ -1,13 +1,16 @@
 ###########################################################################################################################
 .data								#says we will be putting data in
-Stack:			.word 0:99				#stack
+Stack_begin:		.word 0:40				#stack
 Stack_Bottom:
-num1:			.word 0	 				#creates a space in memory to store first input
-num2:			.word 4					#creates a space in memory to store second input
-remainder:		.word 4					#creates a space in memory to store remainder
-result:			.word 4					#creates a space in memory to store result		
-clear:			.word 99				#creates a space in memory to make a clear
-buffer:			.byte 0:80				#creates a buffer that is 10 digits
+stack:			.word 0:8
+num1:			.word 0:4 				#creates a space in memory to store first input
+num2:			.word 0:4				#creates a space in memory to store second input
+remainder:		.word 0:4				#creates a space in memory to store remainder
+result:			.word 0:4				#creates a space in memory to store result		
+asciinum1:		.asciiz "00000000000000000000000000000000000000" #creates a space in memory to make a clear
+asciinum2:		.asciiz "00000000000000000000000000000000000000" #creates a space in memory to make a clear
+asciiresult:		.asciiz "00000000000000000000000000000000000000" #creates a space in memory to make a clear
+buffer:			.asciiz "00000000000000000000000000000000000000" #creates a buffer that is 38 digits
 Input1: 		.asciiz "\nPlease enter first number:"	#prompts the user to input something
 Input2: 		.asciiz "\nPlease enter second number:" #prompts the user to input something
 Input_operator: 	.asciiz "Please enter operator(+-*/%$):"	#prompts the user to input something
@@ -20,14 +23,14 @@ INVALID_NUM: 		.asciiz "\nNot a valid numerical input\n"
 ###########################################################################################################################
 .text
 Main:
-	la $sp, Stack_Bottom				#puts stack pointer at the bottom of the stack
-	
+	la $sp, Stack_Bottom			#puts stack pointer at the bottom of the stack
+	la $sp, stack
 
 	la  $a0, Input1				#loads address of first input string
-	la  $a1, num1				#stores the first input into memory
-	la  $a3, INVALID_NUM			#loads string that for invalid input
+	la  $a1, buffer				#loads the buffer
+	la  $a2, num1				#stores the first input into memory
+	la  $a3, asciinum1			#loads string that for invalid input
 	jal GetInput 				#jumps to get input
-
 	
 	 				
 	la  $a0, Input_operator			#loads address of operator input string
@@ -41,8 +44,9 @@ Main:
 	beq $v1, '$', SquareRoot		#if user inputed operator is $ go to SquareRoot
 
 	la  $a0, Input2				#loads address of second input number string
-	la  $a1, num2				#stores the second input into memory
-	la  $a3, INVALID_NUM			#loads string that for invalid input
+	la  $a1, buffer				#loads the buffer
+	la  $a2, num2				#stores the second input into memory
+	la  $a3, asciinum2			#loads string that for invalid input
 	jal GetInput				#jumps to get second number
 
 
@@ -59,15 +63,15 @@ Main:
 	beq $v1, '%', DivNumb			#if user inputed operator is % go to DivNumb
 
 resume:						#where we return after our arithmetic operation	
-	la $a0, result				#load result
-	la $a1, clear				#clears a1
-		
-	jal BinToDecAsc
-
+	la $a0, result				#loads stupid result
+	la $a1, asciiresult			#loads place to put good result
+	
+	jal BinToDecAsc				#make stupid result into good result
+	
 	beq $v1, '%', MODULO_OUT		#if user inputed operator is % go to DivNumb
 
 	la  $a0, Your_answer
-	la  $a1, result
+	la  $a1, asciiresult
 	jal DisplayNumb				#displays the equation that was entered on one line
 
 	
@@ -78,19 +82,22 @@ resume:						#where we return after our arithmetic operation
 	lw  $t7, 0($a1)				#load address of remainder
 	bne $t7, $0, DisplayNumb		#if remainder is not zero, branch
 done:
+	
+EXIT:						#exit loop
+	li $v0, 10
+	syscall
+#Procedure:SQRT_OUT Displays the result of square rooting num1	
 SQRT_OUT:
 	la $a0, Your_answer
 	la $a1, num1
 	jal DisplayNumb
 	j EXIT
+#Procedure:MODULO_OUT Displays the result of modulo divison ( a0 % a1)		
 MODULO_OUT:
 	la  $a0, Your_answer
 	la $a1, remainder
-	jal DisplayNumb				#displays the equation that was entered on one line	
-EXIT:						#exit loop
-	li $v0, 10
-	syscall
-	
+	jal DisplayNumb				#displays the equation that was entered on one line
+	j EXIT	
 #Procedure:GetInput Displays a prompt to the user and then wait for a numerical input
 #The user’s input will get stored to the (word) address pointed by $a1 
 #Input: $a0 points to the text string that will get displayed to the user
@@ -99,28 +106,33 @@ GetInput:
 	li $v0, 4				#service 4 is print string
 	syscall
 	
-	la   $t0, buffer			#loads the buffer
-	addi $sp, $sp, -4			#shift stack pointer			      
-	sw   $a1, 0($sp)			#store to the stack
-
 	
-	add  $a0, $t0, 0			#a0 = buffer
-	addi $a1, $0, 80			#max number of characters we can use
+	addi $sp, $sp, 8			#shift stack pointer			      
+	add  $a0, $zero, $a1			#a0 = buffer
+	addi $a1, $0, 39			#max number of characters we can use
 	
 	li $v0, 8				#retrieves value of Input string
 	syscall 
 	
-	lw   $a1, 0($sp)			# restore al to num1 or num2
-	addi $sp, $sp, 4    
-	addi $sp, $sp,-4			
-	sw   $ra, 0($sp)			# store our ra so we can jump back to main 
+	add  $a1, $zero, $a2			#loads 4 word num into a1
+	addi $sp, $sp, -12    			#decrements stack
+		
+	sw   $a3, 0($sp)			#save dummy variable to stack
+	sw   $a2, 4($sp)			#save num(1 or 2) to stack				
+	sw   $ra, 8($sp)			# store our ra so we can jump back to main 
 	
 	jal DecAscToBin				
 	
-	lw   $ra, 0($sp)
-	addi $sp, $sp, 4 
+	lw   $a0, 4($sp)			#load actual num(1 or 2)
+	lw   $a1, 0($sp)			#load dummy variable
+	addi $sp, $sp, 8			#increment stack
+	
+	jal BinToDecAsc
+	
+	lw   $ra, 0($sp)			#restore ra
+	addi $sp, $sp, 4 			#increment stack
 
-	jr $ra 
+	jr $ra 					#go home
 
 #Procedure: GetOperator Displays a prompt to the user and then wait for a single character input
 #Input: $a0 points to the text string that will get displayed to the user
@@ -143,8 +155,8 @@ DisplayNumb:
 	li $v0, 4				#service 4 is print string
 	syscall
 	
-	li   $v0, 1				#print integer syscall
-	lw   $a0, 0($a1)			#move our result that is stored in $a1 to $a0
+	add $a0, $a1, $zero			#move our result that is stored in $a1 to $a0
+	li  $v0, 4				#print integer syscall
 	syscall	
 jr $ra
 #procedure to see if operator is '+'	
