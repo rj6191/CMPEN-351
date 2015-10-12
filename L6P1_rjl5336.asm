@@ -10,6 +10,8 @@ result:			.word 0:4				#creates a space in memory to store result
 asciinum1:		.asciiz "00000000000000000000000000000000000000" #creates a space in memory to make a clear
 asciinum2:		.asciiz "00000000000000000000000000000000000000" #creates a space in memory to make a clear
 asciiresult:		.asciiz "00000000000000000000000000000000000000" #creates a space in memory to make a clear
+asciisqrt:		.asciiz "00000000000000000000000000000000000000" #creates a space in memory to make a clear
+asciiremainder:		.asciiz "00000000000000000000000000000000000000" #creates a space in memory to make a clear
 buffer:			.asciiz "00000000000000000000000000000000000000" #creates a buffer that is 38 digits
 Input1: 		.asciiz "\nPlease enter first number:"	#prompts the user to input something
 Input2: 		.asciiz "\nPlease enter second number:" #prompts the user to input something
@@ -70,34 +72,47 @@ resume:						#where we return after our arithmetic operation
 	
 	beq $v1, '%', MODULO_OUT		#if user inputed operator is % go to DivNumb
 
-	la  $a0, Your_answer
-	la  $a1, asciiresult
+	la  $a0, Your_answer			
+	la  $a1, asciiresult			#load true result
 	jal DisplayNumb				#displays the equation that was entered on one line
 
-	
-	la $a0, Output_remainder		
+			
 	la $a1, remainder			#load remainder
-
 	la  $ra,done				#set point to return to
 	lw  $t7, 0($a1)				#load address of remainder
-	bne $t7, $0, DisplayNumb		#if remainder is not zero, branch
+	bne $t7, $0, convert_remainder		#if remainder is not zero, branch
 done:
 	
 EXIT:						#exit loop
 	li $v0, 10
 	syscall
+convert_remainder:
+	la $a0, remainder			#loads stupid result
+	la $a1, asciiremainder			#loads place to put good result
+	jal BinToDecAsc
+	la $a0, Output_remainder
+	la $a1, asciiremainder			#load remainder
+	jal DisplayNumb				#if remainder is not zero, branch
+	j EXIT
 #Procedure:SQRT_OUT Displays the result of square rooting num1	
 SQRT_OUT:
+	
+	la $a0, num1
+	la $a1, asciisqrt
+	jal BinToDecAsc
 	la $a0, Your_answer
-	la $a1, num1
-	jal DisplayNumb
+	la $a1, asciisqrt		#load remainder
+	jal DisplayNumb				#if remainder is not zero, branch
 	j EXIT
 #Procedure:MODULO_OUT Displays the result of modulo divison ( a0 % a1)		
 MODULO_OUT:
-	la  $a0, Your_answer
-	la $a1, remainder
-	jal DisplayNumb				#displays the equation that was entered on one line
-	j EXIT	
+	la $a0, remainder			#loads stupid result
+	la $a1, asciiremainder			#loads place to put good result
+	jal BinToDecAsc
+	la $a0, Output_remainder
+	la $a1, asciiremainder			#load remainder
+	jal DisplayNumb				#if remainder is not zero, branch
+	j EXIT
 #Procedure:GetInput Displays a prompt to the user and then wait for a numerical input
 #The user’s input will get stored to the (word) address pointed by $a1 
 #Input: $a0 points to the text string that will get displayed to the user
