@@ -31,7 +31,7 @@ Main:
 	la  $a0, Input1				#loads address of first input string
 	la  $a1, buffer				#loads the buffer
 	la  $a2, num1				#stores the first input into memory
-	la  $a3, asciinum1			#loads string that for invalid input
+	la  $a3, asciinum1			#dummy variable
 	jal GetInput 				#jumps to get input
 	
 	 				
@@ -48,7 +48,7 @@ Main:
 	la  $a0, Input2				#loads address of second input number string
 	la  $a1, buffer				#loads the buffer
 	la  $a2, num2				#stores the second input into memory
-	la  $a3, asciinum2			#loads string that for invalid input
+	la  $a3, asciinum2			#dummy variable
 	jal GetInput				#jumps to get second number
 
 
@@ -101,7 +101,7 @@ SQRT_OUT:
 	la $a1, asciisqrt
 	jal BinToDecAsc
 	la $a0, Your_answer
-	la $a1, asciisqrt		#load remainder
+	la $a1, asciisqrt			#load remainder
 	jal DisplayNumb				#if remainder is not zero, branch
 	j EXIT
 #Procedure:MODULO_OUT Displays the result of modulo divison ( a0 % a1)		
